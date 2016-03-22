@@ -372,7 +372,54 @@ const short temptable_7[NUMTEMPS_7][2] = {
 };
 #endif
 
-
+#if (THERMISTORHEATER == 8) || (THERMISTORBED == 8) // is 1k Honeywell 701-102BAB-B00
+#define NUMTEMPS_8 43
+const short temptable_8[NUMTEMPS_8][2] = {
+  {1, 864},
+  {289, 400},
+  {292, 390},
+  {295, 380},
+  {299, 370},
+  {302, 360},
+  {306, 350},
+  {309, 340},
+  {313, 330},
+  {317, 320},
+  {320, 310},
+  {324, 300},
+  {328, 290},
+  {332, 280},
+  {337, 270},
+  {341, 260},
+  {345, 250},
+  {350, 240},
+  {355, 230},
+  {359, 220},
+  {364, 210},
+  {369, 200},
+  {375, 190},
+  {380, 180},
+  {385, 170},
+  {391, 160},
+  {397, 150},
+  {403, 140},
+  {409, 130},
+  {416, 120},
+  {422, 110},
+  {429, 100},
+  {436, 90},
+  {443, 80},
+  {451, 70},
+  {459, 60},
+  {467, 50},
+  {475, 40},
+  {484, 30},
+  {493, 20},
+  {502, 10},
+  {512, 0},
+  {1008, -35}
+};
+#endif
 
 #if THERMISTORHEATER == 1
 #define NUMTEMPS NUMTEMPS_1
@@ -395,6 +442,9 @@ const short temptable_7[NUMTEMPS_7][2] = {
 #elif THERMISTORHEATER == 7
 #define NUMTEMPS NUMTEMPS_7
 #define temptable temptable_7
+#elif THERMISTORHEATER == 8
+#define NUMTEMPS NUMTEMPS_8
+#define temptable temptable_8
 #elif defined HEATER_USES_THERMISTOR
 #error No heater thermistor table specified
 #endif
@@ -419,6 +469,9 @@ const short temptable_7[NUMTEMPS_7][2] = {
 #elif THERMISTORBED == 7
 #define BNUMTEMPS NUMTEMPS_7
 #define bedtemptable temptable_7
+#elif THERMISTORBED == 8
+#define BNUMTEMPS NUMTEMPS_8
+#define bedtemptable temptable_8
 #elif defined BED_USES_THERMISTOR
 #error No bed thermistor table specified
 #endif

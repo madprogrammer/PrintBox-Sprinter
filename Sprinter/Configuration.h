@@ -27,12 +27,14 @@
 // 5 is ParCan supplied 104GT-2 100K
 // 6 is EPCOS 100k
 // 7 is 100k Honeywell thermistor 135-104LAG-J01
-#define THERMISTORHEATER 1
-#define THERMISTORBED 1
+// 8 is 1k Honeywell 701-102BAB-B00
+#define THERMISTORHEATER 8
+#define THERMISTORBED 4
 
 //// Calibration variables
 // X, Y, Z, E steps per unit - Metric Prusa Mendel with Wade extruder:
-#define _AXIS_STEP_PER_UNIT {80, 80, 3200/1.25,700}
+//#define _AXIS_STEP_PER_UNIT {92, 92, 33.75, 175}
+#define _AXIS_STEP_PER_UNIT {85.86, 85.86, 85.86, 87.462*4} // Изменена скорость подачи экструдера под микрошаг (60/16) (430)
 // Metric Prusa Mendel with Makergear geared stepper extruder:
 //#define _AXIS_STEP_PER_UNIT {80,80,3200/1.25,1380}
 // MakerGear Hybrid Prusa Mendel:
@@ -54,7 +56,7 @@ const bool Z_ENDSTOP_INVERT = false;
 //#define BAUDRATE 250000
 
 // Comment out (using // at the start of the line) to disable SD support:
-#define SDSUPPORT
+//#define SDSUPPORT
 
 // Uncomment to make run init.g from SD on boot
 //#define SDINITFILE
@@ -82,7 +84,7 @@ const bool Z_ENDSTOP_INVERT = false;
 //-----------------------------------------------------------------------
 //Uncomment to aktivate the arc (circle) function (G2/G3 Command)
 //Without SD function an ARC function the used Flash is smaller 31 kb
-#define USE_ARC_FUNCTION
+//#define USE_ARC_FUNCTION
 
 //-----------------------------------------------------------------------
 //// ADVANCED SETTINGS - to tweak parameters
@@ -94,6 +96,9 @@ const bool Z_ENDSTOP_INVERT = false;
 		#define SD_FAST_XFER_CHUNK_SIZE 1024
 	#endif
 #endif
+
+// 0 - X и Z раздельно, 1 -  X и Z совмещенные моторы
+#define XzMechanizm 0
 
 //-----------------------------------------------------------------------
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
@@ -111,15 +116,15 @@ const bool Z_ENDSTOP_INVERT = false;
 //-----------------------------------------------------------------------
 const bool DISABLE_X = false;
 const bool DISABLE_Y = false;
-const bool DISABLE_Z = true;
+const bool DISABLE_Z = false;
 const bool DISABLE_E = false;
 
 //-----------------------------------------------------------------------
 // Inverting axis direction
 //-----------------------------------------------------------------------
-const bool INVERT_X_DIR = false;
+const bool INVERT_X_DIR = true;
 const bool INVERT_Y_DIR = false;
-const bool INVERT_Z_DIR = true;
+const bool INVERT_Z_DIR = false;
 const bool INVERT_E_DIR = false;
 
 //-----------------------------------------------------------------------
@@ -127,28 +132,28 @@ const bool INVERT_E_DIR = false;
 //-----------------------------------------------------------------------
 // Sets direction of endstops when homing; 1=MAX, -1=MIN
 #define X_HOME_DIR -1
-#define Y_HOME_DIR -1
+#define Y_HOME_DIR  1
 #define Z_HOME_DIR -1
 
 //#define ENDSTOPS_ONLY_FOR_HOMING // If defined the endstops will only be used for homing
 
-const bool min_software_endstops = false; //If true, axis won't move to coordinates less than zero.
+const bool min_software_endstops = true; //If true, axis won't move to coordinates less than zero.
 const bool max_software_endstops = true; //If true, axis won't move to coordinates greater than the defined lengths below.
 
 
 //-----------------------------------------------------------------------
 //Max Length for Prusa Mendel, check the ways of your axis and set this Values
 //-----------------------------------------------------------------------
-const int X_MAX_LENGTH = 200;
-const int Y_MAX_LENGTH = 200;
-const int Z_MAX_LENGTH = 100;
+const int X_MAX_LENGTH = 190;
+const int Y_MAX_LENGTH = 160;
+const int Z_MAX_LENGTH = 150;
 
 //-----------------------------------------------------------------------
 //// MOVEMENT SETTINGS
 //-----------------------------------------------------------------------
 const int NUM_AXIS = 4; // The axis order in all axis related arrays is X, Y, Z, E
-#define _MAX_FEEDRATE {400, 400, 2, 45}       // (mm/sec)    
-#define _HOMING_FEEDRATE {1500,1500,120}      // (mm/min) !!
+#define _MAX_FEEDRATE {5000, 5000, 500, 200}       // (mm/sec)
+#define _HOMING_FEEDRATE {1000, 1000, 650}      // (mm/min) !!
 #define _AXIS_RELATIVE_MODES {false, false, false, false}
 
 #define MAX_STEP_FREQUENCY 30000 // Max step frequency
@@ -156,7 +161,7 @@ const int NUM_AXIS = 4; // The axis order in all axis related arrays is X, Y, Z,
 //For the retract (negative Extruder) move this maxiumum Limit of Feedrate is used
 //The next positive Extruder move use also this Limit, 
 //then for the next (second after retract) move the original Maximum (_MAX_FEEDRATE) Limit is used
-#define MAX_RETRACT_FEEDRATE 100    //mm/sec
+#define MAX_RETRACT_FEEDRATE 45    //mm/sec
 
 //-----------------------------------------------------------------------
 //// Not used at the Moment
@@ -164,7 +169,7 @@ const int NUM_AXIS = 4; // The axis order in all axis related arrays is X, Y, Z,
 
 // Min step delay in microseconds. If you are experiencing missing steps, try to raise the delay microseconds, but be aware this
 // If you enable this, make sure STEP_DELAY_RATIO is disabled.
-//#define STEP_DELAY_MICROS 1
+#define STEP_DELAY_MICROS 5
 
 // Step delay over interval ratio. If you are still experiencing missing steps, try to uncomment the following line, but be aware this
 // If you enable this, make sure STEP_DELAY_MICROS is disabled. (except for Gen6: both need to be enabled.)
@@ -172,23 +177,23 @@ const int NUM_AXIS = 4; // The axis order in all axis related arrays is X, Y, Z,
 
 ///Oscillation reduction.  Forces x,y,or z axis to be stationary for ## ms before allowing axis to switch direcitons.  Alternative method to prevent skipping steps.  Uncomment the line below to activate.
 // At this Version with Planner this Function ist not used
-//#define RAPID_OSCILLATION_REDUCTION
+#define RAPID_OSCILLATION_REDUCTION
 
 #ifdef RAPID_OSCILLATION_REDUCTION
-const long min_time_before_dir_change = 30; //milliseconds
+const long min_time_before_dir_change = 100; //milliseconds
 #endif
 
 //-----------------------------------------------------------------------
 //// Acceleration settings
 //-----------------------------------------------------------------------
 // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
-#define _ACCELERATION 1000         // Axis Normal acceleration mm/s^2
+#define _ACCELERATION 2000         // Axis Normal acceleration mm/s^2
 #define _RETRACT_ACCELERATION 2000 // Extruder Normal acceleration mm/s^2
 #define _MAX_XY_JERK 20.0
 #define _MAX_Z_JERK 0.4
 #define _MAX_E_JERK 5.0    // (mm/sec)
 //#define _MAX_START_SPEED_UNITS_PER_SECOND {25.0,25.0,0.2,10.0}
-#define _MAX_ACCELERATION_UNITS_PER_SQ_SECOND {5000,5000,50,5000}    // X, Y, Z and E max acceleration in mm/s^2 for printing moves or retracts
+#define _MAX_ACCELERATION_UNITS_PER_SQ_SECOND {4000,4000,3000,3000}    // X, Y, Z and E max acceleration in mm/s^2 for printing moves or retracts
 
 
 // Minimum planner junction speed. Sets the default minimum speed the planner plans for at the end
@@ -293,17 +298,24 @@ const int dropsegments=5; //everything with less than this number of steps will 
 
 // M303 - PID relay autotune S<temperature> sets the target temperature. 
 // (default target temperature = 150C)
-#define PID_AUTOTUNE
+//  #define PID_AUTOTUNE
 
 //PID Controler Settings
-#define PID_INTEGRAL_DRIVE_MAX 80 // too big, and heater will lag after changing temperature, too small and it might not compensate enough for long-term errors
-#define PID_PGAIN 2560 //256 is 1.0  // value of X means that error of 1 degree is changing PWM duty by X, probably no need to go over 25
-#define PID_IGAIN 64 //256 is 1.0  // value of X (e.g 0.25) means that each degree error over 1 sec (2 measurements) changes duty cycle by 2X (=0.5) units (verify?)
-#define PID_DGAIN 4096 //256 is 1.0  // value of X means that around reached setpoint, each degree change over one measurement (half second) adjusts PWM by X units to compensate
+#define PID_INTEGRAL_DRIVE_MAX  50// 50 // too big, and heater will lag after changing temperature, too small and it might not compensate enough for long-term errors
+#define PID_PGAIN 3000  // 200  // 621  //256 is 1.0  // value of X means that error of 1 degree is changing PWM duty by X, probably no need to go over 25
+#define PID_IGAIN 0   // 50   // 13   //256 is 1.0  // value of X (e.g 0.25) means that each degree error over 1 sec (2 measurements) changes duty cycle by 2X (=0.5) units (verify?)
+#define PID_DGAIN 5000// 25000// 1804 //256 is 1.0  // value of X means that around reached setpoint, each degree change over one measurement (half second) adjusts PWM by X units to compensate
+
+
+//#define PID_INTEGRAL_DRIVE_MAX 80 // too big, and heater will lag after changing temperature, too small and it might not compensate enough for long-term errors
+//#define PID_PGAIN 200 //256 is 1.0  // value of X means that error of 1 degree is changing PWM duty by X, probably no need to go over 25
+//#define PID_IGAIN 64 //256 is 1.0  // value of X (e.g 0.25) means that each degree error over 1 sec (2 measurements) changes duty cycle by 2X (=0.5) units (verify?)
+//#define PID_DGAIN 25000 //256 is 1.0  // value of X means that around reached setpoint, each degree change over one measurement (half second) adjusts PWM by X units to compensate
+
 
 // magic formula 1, to get approximate "zero error" PWM duty. Take few measurements with low PWM duty and make linear fit to get the formula
 // for my makergear hot-end: linear fit {50,10},{60,20},{80,30},{105,50},{176,100},{128,64},{208,128}
-#define HEATER_DUTY_FOR_SETPOINT(setpoint) ((int)((187L*(long)setpoint)>>8)-27)  
+#define HEATER_DUTY_FOR_SETPOINT(setpoint) 0//(((int)((187L*(long)setpoint)>>8)-27) >> 5)
 // magic formula 2, to make led brightness approximately linear
 #define LED_PWM_FOR_BRIGHTNESS(brightness) ((64*brightness-1384)/(300-brightness))
 #endif
@@ -312,7 +324,7 @@ const int dropsegments=5; //everything with less than this number of steps will 
 #define HEATER_CURRENT 255
 
 // How often should the heater check for new temp readings, in milliseconds
-#define HEATER_CHECK_INTERVAL 500
+#define HEATER_CHECK_INTERVAL 200
 #define BED_CHECK_INTERVAL 5000
 
 // Comment the following line to enable heat management during acceleration
@@ -342,13 +354,16 @@ const int dropsegments=5; //everything with less than this number of steps will 
 //#define TEMP_HYSTERESIS 5       // (C°) range of +/- temperatures considered "close" to the target one
 
 //// The minimal temperature defines the temperature below which the heater will not be enabled
-#define MINTEMP 5
+#define MINTEMP_HEAT 5
 
 //// Experimental max temp
 // When temperature exceeds max temp, your heater will be switched off.
 // This feature exists to protect your hotend from overheating accidentally, but *NOT* from thermistor short/failure!
 // You should use MINTEMP for thermistor short/failure protection.
-#define MAXTEMP 275
+#define MAXTEMP_HEAT 350
+
+//// The minimal temperature defines the temperature below which the bed will not be enabled
+#define MINTEMP_BED 5
 
 // Select one of these only to define how the nozzle temp is read.
 #define HEATER_USES_THERMISTOR

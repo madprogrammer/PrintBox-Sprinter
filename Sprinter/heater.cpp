@@ -96,12 +96,16 @@ unsigned long previous_millis_heater, previous_millis_bed_heater, previous_milli
   unsigned long watchmillis = 0;
 #endif
 
-#ifdef MINTEMP
-  int minttemp = temp2analogh(MINTEMP);
+#ifdef MINTEMP_HEAT
+  int minttempH = temp2analogh(MINTEMP_HEAT);
 #endif
 
-#ifdef MAXTEMP
-  int maxttemp = temp2analogh(MAXTEMP);
+#ifdef MAXTEMP_HEAT
+  int maxttempH = temp2analogh(MAXTEMP_HEAT);
+#endif
+
+#ifdef MINTEMP_BED
+  int minttempB = temp2analogBed(MINTEMP_BED);
 #endif
 
 
@@ -194,22 +198,27 @@ int read_max6675()
 #if defined(PID_SOFT_PWM) || (defined(FAN_SOFT_PWM) && (FAN_PIN > -1))
 ISR(TIMER2_OVF_vect)
 {
-  
+
   //--------------------------------------
   // Soft PWM, Heater, start PWM cycle
   //--------------------------------------
   #ifdef PID_SOFT_PWM
-    if(g_heater_pwm_val >= 2)
+    static unsigned char i;
+    unsigned char tmp;
+    i = i<6 ? i+1 : 0;
+    tmp = i==0 ? g_heater_pwm_val : 0;
+
+    if(tmp >= 2)
     {
       #if LED_PIN > -1
         WRITE(LED_PIN,HIGH);
       #endif
       WRITE(HEATER_0_PIN,HIGH);
 
-      if(g_heater_pwm_val <= 253)
-        OCR2A = g_heater_pwm_val; 
-      else
-        OCR2A = 192; 
+//      if(tmp <= 253)
+        OCR2A = tmp;
+//      else
+//        OCR2A = 192;
     }
     else
     {
@@ -217,10 +226,10 @@ ISR(TIMER2_OVF_vect)
         WRITE(LED_PIN,LOW);
       #endif
       WRITE(HEATER_0_PIN,LOW);
-      OCR2A = 192; 
+      OCR2A = 192;
     }
   #endif
-  
+
   //--------------------------------------
   // Soft PWM, Fan, start PWM cycle
   //--------------------------------------
@@ -256,14 +265,14 @@ ISR(TIMER2_OVF_vect)
  {
 
 
-   if(g_heater_pwm_val > 253)
+/*   if(g_heater_pwm_val > 253)
    {
      #if LED_PIN > -1
        WRITE(LED_PIN,HIGH);
      #endif
      WRITE(HEATER_0_PIN,HIGH);
    }
-   else
+   else*/
    {
      #if LED_PIN > -1
        WRITE(LED_PIN,LOW);
@@ -622,13 +631,13 @@ void PID_autotune(int PIDAT_test_temp)
   
   //If tmp is lower then MINTEMP stop the Heater
   //or it os better to deaktivate the uutput PIN or PWM ?
-  #ifdef MINTEMP
-    if(current_raw <= minttemp)
+  #ifdef MINTEMP_HEAT
+    if(current_raw <= minttempH)
         target_temp = target_raw = 0;
   #endif
   
-  #ifdef MAXTEMP
-    if(current_raw >= maxttemp)
+  #ifdef MAXTEMP_HEAT
+    if(current_raw >= maxttempH)
     {
         target_temp = target_raw = 0;
     
@@ -654,7 +663,7 @@ void PID_autotune(int PIDAT_test_temp)
       {
         temp_iState += error;
         temp_iState = constrain(temp_iState, temp_iState_min, temp_iState_max);
-        iTerm = ((long)PID_Ki * temp_iState) / 256;
+        iTerm = ((long long)PID_Ki * temp_iState) / 256;
         heater_duty += iTerm;
       }
       
@@ -665,8 +674,8 @@ void PID_autotune(int PIDAT_test_temp)
       if(prev_error >  9){ prev_error /=  9; log3 += 2; }
       if(prev_error >  3){ prev_error /=  3; log3 ++;   }
       
-      dTerm = ((long)PID_Kd * delta_temp) / (256*log3);
-      heater_duty += dTerm;
+      dTerm = ((long long)PID_Kd * delta_temp) / (256*log3);
+      heater_duty -= dTerm;
       heater_duty = constrain(heater_duty, 0, HEATER_CURRENT);
 
       #ifdef PID_SOFT_PWM
@@ -741,8 +750,8 @@ void PID_autotune(int PIDAT_test_temp)
   #endif
   
   
-  #ifdef MINTEMP
-    if(current_bed_raw >= target_bed_raw || current_bed_raw < minttemp)
+  #ifdef MINTEMP_BED
+    if(current_bed_raw >= target_bed_raw || current_bed_raw < minttempB)
   #else
     if(current_bed_raw >= target_bed_raw)
   #endif
@@ -794,7 +803,7 @@ int temp2analog_thermistor(int celsius, const short table[][2], int numtemps)
 #if defined (HEATER_USES_AD595) || defined (BED_USES_AD595)
 int temp2analog_ad595(int celsius) 
 {
-    return (celsius * 1024.0) / (500.0);
+    return celsius * 1024 / (500);
 }
 #endif
 
@@ -835,7 +844,7 @@ int analog2temp_thermistor(int raw,const short table[][2], int numtemps) {
 #if defined (HEATER_USES_AD595) || defined (BED_USES_AD595)
 int analog2temp_ad595(int raw)
 {
-        return (raw * 500.0) / 1024.0;
+        return raw * 500 / 1024;
 }
 #endif
 

@@ -984,18 +984,22 @@ void get_command()
             serial_count = 0;
             return;
           }
-    
+
           if(strstr(cmdbuffer[bufindw], "*") != NULL)
           {
             byte checksum = 0;
             byte count = 0;
             while(cmdbuffer[bufindw][count] != '*') checksum = checksum^cmdbuffer[bufindw][count++];
             strchr_pointer = strchr(cmdbuffer[bufindw], '*');
-  
-            if( (int)(strtod(&cmdbuffer[bufindw][strchr_pointer - cmdbuffer[bufindw] + 1], NULL)) != checksum)
+
+
+            int tmp1 = (int)(strtod(&cmdbuffer[bufindw][strchr_pointer - cmdbuffer[bufindw] + 1], NULL));
+            if( tmp1 != checksum)
             {
               showString(PSTR("Error: checksum mismatch, Last Line:"));
-              Serial.println(gcode_LastN);
+              Serial.print(gcode_LastN);
+              showString(PSTR(". Line:"));
+              Serial.println(cmdbuffer[bufindw]);
               FlushSerialRequestResend();
               serial_count = 0;
               return;
@@ -2576,6 +2580,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate)
   if(block->steps_x != 0)
   {
     enable_x();
+    enable_z();
     delayMicroseconds(DELAY_ENABLE);
   }
   if(block->steps_y != 0)
@@ -2585,6 +2590,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate)
   }
   if(block->steps_z != 0)
   {
+    enable_x();
     enable_z();
     delayMicroseconds(DELAY_ENABLE);
   }
@@ -2595,9 +2601,9 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate)
   }
  #else
   //enable active axes
-  if(block->steps_x != 0) enable_x();
+  if(block->steps_x != 0) enable_x(); enable_z();
   if(block->steps_y != 0) enable_y();
-  if(block->steps_z != 0) enable_z();
+  if(block->steps_z != 0)  enable_x();enable_z();
   if(block->steps_e != 0) enable_e();
  #endif 
  
@@ -2996,7 +3002,8 @@ asm volatile ( \
 static block_t *current_block;  // A pointer to the block currently being traced
 
 // Variables used by The Stepper Driver Interrupt
-static unsigned char out_bits;        // The next stepping-bits to be output
+static unsigned char out_bits,        // The next stepping-bits to be output
+	dirMove;
 static long counter_x,       // Counter variables for the bresenham line tracer
             counter_y, 
             counter_z,       
@@ -3113,7 +3120,8 @@ FORCE_INLINE void trapezoid_generator_reset()
 // "The Stepper Driver Interrupt" - This timer interrupt is the workhorse.  
 // It pops blocks from the block_buffer and executes them by pulsing the stepper pins appropriately. 
 ISR(TIMER1_COMPA_vect)
-{        
+{
+
   // If there is no current block, attempt to pop one from the buffer
   if (current_block == NULL) {
     // Anything in the buffer?
@@ -3138,13 +3146,21 @@ ISR(TIMER1_COMPA_vect)
     // Set directions TO DO This should be done once during init of trapezoid. Endstops -> interrupt
     out_bits = current_block->direction_bits;
 
+dirMove = 0;
     // Set direction and check limit switches
     if ((out_bits & (1<<X_AXIS)) != 0) {   // -direction
+#if XzMechanizm == 0
       WRITE(X_DIR_PIN, INVERT_X_DIR);
+#else
+dirMove = 0x01;
+#endif
       CHECK_ENDSTOPS
       {
         #if X_MIN_PIN > -1
-          bool x_min_endstop=(READ(X_MIN_PIN) != X_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(X_MIN_PIN) != X_ENDSTOP_INVERT);}
+bool x_min_endstop = (sum > 5);
+//          bool x_min_endstop=(READ(X_MIN_PIN) != X_ENDSTOP_INVERT);
           if(x_min_endstop && old_x_min_endstop && (current_block->steps_x > 0)) {
             if(!is_homing)
               endstop_x_hit=true;
@@ -3162,11 +3178,16 @@ ISR(TIMER1_COMPA_vect)
       }
     }
     else { // +direction 
+#if XzMechanizm == 0
       WRITE(X_DIR_PIN,!INVERT_X_DIR);
+#endif
       CHECK_ENDSTOPS 
       {
         #if X_MAX_PIN > -1
-          bool x_max_endstop=(READ(X_MAX_PIN) != X_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(X_MAX_PIN) != X_MAXSTOP_INVERT);}
+bool x_max_endstop = (sum > 5);
+//          bool x_max_endstop=(READ(X_MAX_PIN) != X_ENDSTOP_INVERT);
           if(x_max_endstop && old_x_max_endstop && (current_block->steps_x > 0)){
             if(!is_homing)
               endstop_x_hit=true;
@@ -3189,7 +3210,10 @@ ISR(TIMER1_COMPA_vect)
       CHECK_ENDSTOPS
       {
         #if Y_MIN_PIN > -1
-          bool y_min_endstop=(READ(Y_MIN_PIN) != Y_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(Y_MIN_PIN) != Y_ENDSTOP_INVERT);}
+bool y_min_endstop = (sum > 5);
+//          bool y_min_endstop=(READ(Y_MIN_PIN) != Y_ENDSTOP_INVERT);
           if(y_min_endstop && old_y_min_endstop && (current_block->steps_y > 0)) {
             if(!is_homing)
               endstop_y_hit=true;
@@ -3211,7 +3235,10 @@ ISR(TIMER1_COMPA_vect)
       CHECK_ENDSTOPS
       {
         #if Y_MAX_PIN > -1
-          bool y_max_endstop=(READ(Y_MAX_PIN) != Y_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(Y_MAX_PIN) != Y_ENDSTOP_INVERT);}
+bool y_max_endstop = (sum > 5);
+//          bool y_max_endstop=(READ(Y_MAX_PIN) != Y_ENDSTOP_INVERT);
           if(y_max_endstop && old_y_max_endstop && (current_block->steps_y > 0)){
             if(!is_homing)
               endstop_y_hit=true;
@@ -3230,11 +3257,18 @@ ISR(TIMER1_COMPA_vect)
     }
 
     if ((out_bits & (1<<Z_AXIS)) != 0) {   // -direction
+#if XzMechanizm == 0
       WRITE(Z_DIR_PIN,INVERT_Z_DIR);
+#else
+dirMove |= 0x10;
+#endif
       CHECK_ENDSTOPS
       {
         #if Z_MIN_PIN > -1
-          bool z_min_endstop=(READ(Z_MIN_PIN) != Z_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(Z_MIN_PIN) != Z_ENDSTOP_INVERT);}
+bool z_min_endstop = (sum > 5);
+//          bool z_min_endstop=(READ(Z_MIN_PIN) != Z_ENDSTOP_INVERT);
           if(z_min_endstop && old_z_min_endstop && (current_block->steps_z > 0)) {
             if(!is_homing)  
               endstop_z_hit=true;
@@ -3252,11 +3286,16 @@ ISR(TIMER1_COMPA_vect)
       }
     }
     else { // +direction
+#if XzMechanizm == 0
       WRITE(Z_DIR_PIN,!INVERT_Z_DIR);
+#endif
       CHECK_ENDSTOPS
       {
         #if Z_MAX_PIN > -1
-          bool z_max_endstop=(READ(Z_MAX_PIN) != Z_ENDSTOP_INVERT);
+unsigned char i, sum = 0;
+for(i=0; i<10; i++){ sum += (READ(Z_MAX_PIN) != Z_ENDSTOP_INVERT);}
+bool z_max_endstop = (sum > 5);
+//          bool z_max_endstop=(READ(Z_MAX_PIN) != Z_ENDSTOP_INVERT);
           if(z_max_endstop && old_z_max_endstop && (current_block->steps_z > 0)) {
             if(!is_homing)
               endstop_z_hit=true;
@@ -3308,13 +3347,17 @@ ISR(TIMER1_COMPA_vect)
           if(virtual_steps_x)
             virtual_steps_x--;
           else
+#if XzMechanizm == 0
             WRITE(X_STEP_PIN, HIGH);
+#else
+dirMove |= 0x02;
+#endif
         }
         else
           virtual_steps_x++;
           
         counter_x -= current_block->step_event_count;
-        WRITE(X_STEP_PIN, LOW);
+//        WRITE(X_STEP_PIN, LOW);
       }
 
       counter_y += current_block->steps_y;
@@ -3340,14 +3383,36 @@ ISR(TIMER1_COMPA_vect)
           if(virtual_steps_z)
             virtual_steps_z--;
           else
+#if XzMechanizm == 0
             WRITE(Z_STEP_PIN, HIGH);
+#else
+dirMove |= 0x20;
+#endif
         }
         else
           virtual_steps_z++;
           
         counter_z -= current_block->step_event_count;
-        WRITE(Z_STEP_PIN, LOW);
+//        WRITE(Z_STEP_PIN, LOW);
       }
+
+#if XzMechanizm == 1
+switch(dirMove) // 0,1 not move, 3+, 2-
+{
+   case 0x03: case 0x13: WRITE(Z_DIR_PIN, !INVERT_Z_DIR); WRITE(X_DIR_PIN, !INVERT_X_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(X_STEP_PIN, HIGH); break;
+   case 0x02: case 0x12: WRITE(Z_DIR_PIN,  INVERT_Z_DIR); WRITE(X_DIR_PIN,  INVERT_X_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(X_STEP_PIN, HIGH); break;
+   case 0x30: case 0x31: WRITE(Z_DIR_PIN,  INVERT_Z_DIR); WRITE(X_DIR_PIN, !INVERT_X_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(X_STEP_PIN, HIGH); break;
+   case 0x20: case 0x21: WRITE(Z_DIR_PIN, !INVERT_Z_DIR); WRITE(X_DIR_PIN,  INVERT_X_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(X_STEP_PIN, HIGH); break;
+
+   case 0x33: WRITE(X_DIR_PIN, !INVERT_X_DIR); WRITE(X_STEP_PIN, HIGH); WRITE(X_STEP_PIN, LOW); WRITE(X_STEP_PIN, HIGH); break;
+   case 0x22: WRITE(X_DIR_PIN,  INVERT_X_DIR); WRITE(X_STEP_PIN, HIGH); WRITE(X_STEP_PIN, LOW); WRITE(X_STEP_PIN, HIGH); break;
+   case 0x23: WRITE(Z_DIR_PIN, !INVERT_Z_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(Z_STEP_PIN, LOW); WRITE(Z_STEP_PIN, HIGH); break;
+   case 0x32: WRITE(Z_DIR_PIN,  INVERT_Z_DIR); WRITE(Z_STEP_PIN, HIGH); WRITE(Z_STEP_PIN, LOW); WRITE(Z_STEP_PIN, HIGH); break;
+}
+dirMove &= 0x11;
+#endif
+
+WRITE(Z_STEP_PIN, LOW); WRITE(X_STEP_PIN, LOW);
 
       #ifndef ADVANCE
         counter_e += current_block->steps_e;

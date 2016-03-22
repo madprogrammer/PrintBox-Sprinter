@@ -17,7 +17,7 @@ Options:
   -h, --help            show this help
   --r0=...          thermistor rating where # is the ohm rating of the thermistor at t0 (eg: 10K = 10000)
   --t0=...          thermistor temp rating where # is the temperature in Celsuis to get r0 (from your datasheet)
-  --beta=...            thermistor beta rating. see http://reprap.org/bin/view/Main/MeasuringThermistorBeta
+  --beta=...            thermistor beta rating. see http://reprap.org/bin/view/Main/MeasuringThermistorBeta
   --r1=...          R1 rating where # is the ohm rating of R1 (eg: 10K = 10000)
   --r2=...          R2 rating where # is the ohm rating of R2 (eg: 10K = 10000)
   --num-temps=...   the number of temperature points to calculate (default: 20)
